@@ -10,25 +10,115 @@
   <style>
     html, body {
       margin: 0;
-      height: 100%;
       background: #ffffff;
     }
+    /* Höjden ger scrollsträckan för animationen */
     body {
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      color: #000000;
-      font-family: "Poppins", Arial, sans-serif;
+      height: 300vh;
     }
-    h1 {
-      margin: 0;
+    svg {
+      position: fixed;
+      inset: 0;
+      width: 100vw;
+      height: 100vh;
+      height: 100lvh;
+      display: block;
+      overflow: hidden;
+    }
+    text {
+      font-family: "Poppins", Arial, sans-serif;
       font-weight: 700;
-      font-size: clamp(2.5rem, 10vw, 6rem);
-      text-align: center;
+      fill: #000000;
     }
   </style>
 </head>
 <body>
-  <h1>conzpiro</h1>
+  <svg aria-label="conzpiro" role="img">
+    <g id="word"><text id="text" x="0" y="0">conzpiro</text></g>
+  </svg>
+
+  <script>
+    const FONT_STACK = 'Poppins, Arial, sans-serif';
+    const word = document.getElementById('word');
+    const text = document.getElementById('text');
+    const ctx = document.createElement('canvas').getContext('2d');
+
+    let geo = null;
+
+    // Mäter ordet och räknar ut start- och slutläge för sista "o"
+    function measure() {
+      const vw = window.innerWidth;
+      const vh = window.innerHeight;
+      const fontSize = Math.min(96, Math.max(40, vw * 0.1));
+
+      ctx.font = `700 ${fontSize}px ${FONT_STACK}`;
+      text.setAttribute('font-size', fontSize);
+
+      const full = ctx.measureText('conzpiro');
+      const prefix = ctx.measureText('conzpir').width;
+      const o = ctx.measureText('o');
+
+      // Bläckytan för sista "o", relativt textens start och baslinje
+      const oLeft = prefix - o.actualBoundingBoxLeft;
+      const oRight = prefix + o.actualBoundingBoxRight;
+      const oW = oRight - oLeft;
+      const oH = o.actualBoundingBoxAscent + o.actualBoundingBoxDescent;
+      const oCx = (oLeft + oRight) / 2;
+      const oCy = (o.actualBoundingBoxDescent - o.actualBoundingBoxAscent) / 2;
+
+      // Placera ordet centrerat i fönstret
+      const x0 = (vw - full.width) / 2;
+      const y0 = vh / 2 + (full.actualBoundingBoxAscent - full.actualBoundingBoxDescent) / 2;
+      text.setAttribute('x', x0);
+      text.setAttribute('y', y0);
+
+      // Slutskala: "o" fyller större delen av höjden, men halva ryms i bredden
+      const endScale = Math.min((vh * 0.85) / oH, (vw * 1.8) / oW);
+
+      geo = {
+        startX: x0 + oCx,
+        startY: y0 + oCy,
+        endX: 0,
+        endY: vh / 2,
+        endScale,
+        scrollRange: Math.max(1, document.documentElement.scrollHeight - vh),
+      };
+      update();
+    }
+
+    function easeInOut(t) {
+      return t < 0.5 ? 2 * t * t : 1 - Math.pow(-2 * t + 2, 2) / 2;
+    }
+
+    function update() {
+      if (!geo) return;
+      const p = Math.min(1, Math.max(0, window.scrollY / geo.scrollRange));
+      const e = easeInOut(p);
+
+      // Jämn zoom (exponentiell) och glidning mot vänsterkanten
+      const s = Math.pow(geo.endScale, e);
+      const cx = geo.startX + (geo.endX - geo.startX) * e;
+      const cy = geo.startY + (geo.endY - geo.startY) * e;
+
+      word.setAttribute(
+        'transform',
+        `translate(${cx} ${cy}) scale(${s}) translate(${-geo.startX} ${-geo.startY})`
+      );
+    }
+
+    let ticking = false;
+    window.addEventListener('scroll', () => {
+      if (ticking) return;
+      ticking = true;
+      requestAnimationFrame(() => { update(); ticking = false; });
+    }, { passive: true });
+    window.addEventListener('resize', measure);
+
+    measure();
+    if (document.fonts) {
+      document.fonts.load(`700 40px Poppins`).then(measure).catch(() => {});
+      document.fonts.ready.then(measure);
+    }
+  </script>
 </body>
 </html>
