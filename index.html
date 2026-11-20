@@ -12,9 +12,9 @@
       margin: 0;
       background: #ffffff;
     }
-    /* Höjden ger scrollsträckan för animationerna */
+    /* Höjden ger scrollsträckan för animationerna (END + 1 skärmhöjder) */
     body {
-      height: 900vh;
+      height: 1800vh;
     }
     svg {
       position: fixed;
@@ -30,16 +30,27 @@
       font-weight: 700;
       fill: #000000;
     }
-    .tree, #road {
+    .tree, .pine, #road, #tent, #hammock, #sleeper, .log {
       fill: #000000;
     }
-    #sky {
-      fill: #4fa8e8;
-    }
-    #sun {
-      fill: #ffc93c;
-    }
     .cloud {
+      fill: #ffffff;
+    }
+    .bird {
+      fill: none;
+      stroke: #000000;
+      stroke-linecap: round;
+      stroke-linejoin: round;
+    }
+    .rope {
+      fill: none;
+      stroke: #000000;
+      stroke-linecap: round;
+    }
+    .star {
+      fill: #ffffff;
+    }
+    .zzz {
       fill: #ffffff;
     }
   </style>
@@ -49,6 +60,8 @@
     <defs>
       <!-- Gran med basen i (0,0), pekar uppåt, höjd 1. Stammen går ner i kanten. -->
       <path id="spruce" d="M0,-1 L0.16,-0.78 L0.09,-0.78 L0.25,-0.56 L0.15,-0.56 L0.32,-0.32 L0.2,-0.32 L0.38,-0.08 L0.06,-0.08 L0.06,0.12 L-0.06,0.12 L-0.06,-0.08 L-0.38,-0.08 L-0.2,-0.32 L-0.32,-0.32 L-0.15,-0.56 L-0.25,-0.56 L-0.09,-0.78 L-0.16,-0.78 Z"/>
+      <!-- Tall med hög bar stam (för hängmattan), basen i (0,0), höjd 1 -->
+      <path id="pineShape" d="M-0.035,0.08 L-0.035,-0.52 L-0.24,-0.5 L-0.1,-0.68 L-0.19,-0.68 L-0.07,-0.84 L-0.13,-0.84 L0,-1 L0.13,-0.84 L0.07,-0.84 L0.19,-0.68 L0.1,-0.68 L0.24,-0.5 L0.035,-0.52 L0.035,0.08 Z"/>
       <!-- Moln med platt botten, bredd 1, botten vid y = 0 -->
       <g id="cloudShape">
         <rect x="0.05" y="-0.24" width="0.9" height="0.24" rx="0.12"/>
@@ -56,30 +69,80 @@
         <circle cx="0.55" cy="-0.32" r="0.23"/>
         <circle cx="0.76" cy="-0.2" r="0.15"/>
       </g>
-      <!-- Allt ovanför vägen; solen döljs bakom vägen -->
+      <!-- Lågans form, basen i (0,0), höjd 1 -->
+      <path id="flameShape" d="M0,0 C-0.55,-0.05 -0.45,-0.6 0,-1 C0.45,-0.6 0.55,-0.05 0,0 Z"/>
+      <radialGradient id="glowGrad">
+        <stop offset="0" stop-color="#ffa64d" stop-opacity="0.75"/>
+        <stop offset="1" stop-color="#ffa64d" stop-opacity="0"/>
+      </radialGradient>
+      <!-- Månskära -->
+      <mask id="moonMask" maskContentUnits="objectBoundingBox">
+        <circle cx="0.5" cy="0.5" r="0.5" fill="#fff"/>
+        <circle cx="0.78" cy="0.36" r="0.45" fill="#000"/>
+      </mask>
+      <!-- Allt ovanför vägen; solen, månen och bergen döljs bakom vägen -->
       <clipPath id="aboveRoad"><rect id="aboveRoadRect" x="0" y="0" width="0" height="0"/></clipPath>
     </defs>
     <rect id="sky" x="0" y="0" width="0" height="0"/>
     <g clip-path="url(#aboveRoad)">
+      <g id="stars"></g>
       <circle id="sun" cx="0" cy="0" r="0"/>
+      <rect id="moon" x="0" y="0" width="0" height="0" mask="url(#moonMask)" fill="#f6f1d5"/>
+      <path id="mtnFar"/>
+      <path id="mtnNear"/>
+      <circle id="glow" r="0" fill="url(#glowGrad)"/>
     </g>
     <g id="clouds"></g>
+    <g id="birds"></g>
     <g id="word"><text id="text" x="0" y="0">conzpiro</text></g>
     <path id="road" display="none"/>
     <g id="trees"></g>
+    <g id="forest"></g>
+    <g id="camp">
+      <use id="pineL" href="#pineShape" class="pine"/>
+      <use id="pineR" href="#pineShape" class="pine"/>
+      <g id="tentGroup">
+        <path id="tent" d="M-0.5,0 L-0.03,-0.72 L-0.08,-0.8 L-0.04,-0.81 L0,-0.75 L0.04,-0.81 L0.08,-0.8 L0.03,-0.72 L0.5,0 Z"/>
+        <path id="tentDoor" d="M-0.13,0.001 L0,-0.42 L0.13,0.001 Z"/>
+      </g>
+      <g id="fire">
+        <rect class="log" x="-0.9" y="-0.18" width="1.8" height="0.2" rx="0.08" transform="rotate(-12)"/>
+        <rect class="log" x="-0.9" y="-0.18" width="1.8" height="0.2" rx="0.08" transform="rotate(12)"/>
+        <use id="flameOuter" href="#flameShape" fill="#ff7a1a"/>
+        <use id="flameInner" href="#flameShape" fill="#ffd23f"/>
+      </g>
+      <path id="ropes" class="rope"/>
+      <path id="hammock"/>
+      <g id="sleeperGroup">
+        <path id="sleeper"/>
+        <circle id="sleeperHead" r="0" fill="#000000"/>
+      </g>
+    </g>
+    <g id="zzzLayer">
+      <text class="zzz">z</text>
+      <text class="zzz">z</text>
+      <text class="zzz">z</text>
+    </g>
   </svg>
 
   <script>
     const FONT_STACK = 'Poppins, Arial, sans-serif';
     const SVG_NS = 'http://www.w3.org/2000/svg';
 
-    // Scrollsträckan (andel 0–1) för de tre stegen:
+    // Tidslinje i skärmhöjder av scrollning:
     // 1 = ordet zoomar till halvcirkel, 2 = granar växer fram, 3 = o:et rätas ut till en väg,
-    // 4 = blå himmel, sol och moln
-    const PHASE1 = [0, 0.25];
-    const PHASE2 = [0.275, 0.5];
-    const PHASE3 = [0.525, 0.75];
-    const PHASE4 = [0.775, 1];
+    // 4 = blå himmel, sol och moln, 5 = vildmark: färden går vidare, berg reser sig, skog passerar,
+    // 6 = lägerplats: tält och lägereld, 7 = hängmatta mellan två tallar, 8 = solnedgång och natt
+    const END = 17;
+    const T = (a, b) => [a / END, b / END];
+    const PHASE1 = T(0, 2);
+    const PHASE2 = T(2.2, 4);
+    const PHASE3 = T(4.2, 6);
+    const PHASE4 = T(6.2, 8);
+    const PHASE5 = T(8.2, 10.5);
+    const PHASE6 = T(10.7, 12.9);
+    const PHASE7 = T(13.1, 14.8);
+    const PHASE8 = T(15, 17);
 
     // Molnen: höjd (andel av himlen från toppen), bredd (andel av skärmen), slutläge (andel av bredden), start i steg 4
     const CLOUDS = [
@@ -101,35 +164,41 @@
       { angle: 56,  size: 0.6,  order: 8 },
     ];
 
+    // Färden längs vägen (i skärmbredder): steg 5 kör 0.9, steg 6 kör 0.7 till
+    const PAN5 = 0.9, PAN6 = 0.7;
+    // Lägerplatsen (andel av skärmbredden när färden har stannat)
+    const CAMP = { tent: 0.25, fire: 0.5, pineL: 0.64, pineR: 0.88 };
+
     // O:ets högra halva mäts längs strålar var 2:a grad, från -90° (överst) till 90° (nederst)
     const STEP = 2;
     const SAMPLES = 180 / STEP + 1;
     const treeNode = (angle) => (angle + 90) / STEP;
 
-    const word = document.getElementById('word');
-    const text = document.getElementById('text');
-    const road = document.getElementById('road');
-    const treeLayer = document.getElementById('trees');
-    const sky = document.getElementById('sky');
-    const sun = document.getElementById('sun');
-    const aboveRoad = document.getElementById('aboveRoadRect');
-    const cloudLayer = document.getElementById('clouds');
-    const cloudEls = CLOUDS.map(() => {
-      const use = document.createElementNS(SVG_NS, 'use');
-      use.setAttribute('href', '#cloudShape');
-      use.setAttribute('class', 'cloud');
-      cloudLayer.appendChild(use);
-      return use;
-    });
+    const $ = (id) => document.getElementById(id);
+    const word = $('word');
+    const text = $('text');
+    const road = $('road');
+    const sky = $('sky');
+    const sun = $('sun');
+    const moon = $('moon');
+    const aboveRoad = $('aboveRoadRect');
+    const mtnFar = $('mtnFar');
+    const mtnNear = $('mtnNear');
+    const glow = $('glow');
     const ctx = document.createElement('canvas').getContext('2d');
 
-    const treeEls = TREES.map(() => {
-      const use = document.createElementNS(SVG_NS, 'use');
-      use.setAttribute('href', '#spruce');
-      use.setAttribute('class', 'tree');
-      treeLayer.appendChild(use);
-      return use;
-    });
+    function make(parent, tag, attrs) {
+      const el = document.createElementNS(SVG_NS, tag);
+      for (const k in attrs) el.setAttribute(k, attrs[k]);
+      parent.appendChild(el);
+      return el;
+    }
+    const cloudEls = CLOUDS.map(() => make($('clouds'), 'use', { href: '#cloudShape', class: 'cloud' }));
+    const treeEls = TREES.map(() => make($('trees'), 'use', { href: '#spruce', class: 'tree' }));
+    const birdEls = [0, 1, 2].map(() => make($('birds'), 'path', { class: 'bird' }));
+    const zzzEls = Array.from(document.querySelectorAll('.zzz'));
+    let forestEls = [];
+    let starEls = [];
 
     let geo = null;
     let profile = null;
@@ -137,16 +206,44 @@
     const clamp01 = (t) => Math.min(1, Math.max(0, t));
     const lerp = (a, b, t) => a + (b - a) * t;
     const phase = (p, [a, b]) => clamp01((p - a) / (b - a));
+    const show = (el, on) => (on ? el.removeAttribute('display') : el.setAttribute('display', 'none'));
 
     function easeInOut(t) {
       return t < 0.5 ? 2 * t * t : 1 - Math.pow(-2 * t + 2, 2) / 2;
     }
 
-    // Liten översväng så att granen "ploppar"
+    // Liten översväng så att saker "ploppar"
     function easeOutBack(t) {
       const c1 = 1.9, c3 = c1 + 1;
       return 1 + c3 * Math.pow(t - 1, 3) + c1 * Math.pow(t - 1, 2);
     }
+
+    // Slumptal som blir samma varje gång (så att skogen och stjärnorna inte hoppar runt)
+    function seeded(seed) {
+      return () => {
+        seed |= 0; seed = (seed + 0x6d2b79f5) | 0;
+        let t = Math.imul(seed ^ (seed >>> 15), 1 | seed);
+        t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+        return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+      };
+    }
+
+    // Färgövergång genom flera stopp: [[läge, '#rrggbb'], ...]
+    function colorAt(stops, t) {
+      let i = 0;
+      while (i < stops.length - 2 && t > stops[i + 1][0]) i++;
+      const [a, ca] = stops[i], [b, cb] = stops[i + 1];
+      const u = clamp01((t - a) / (b - a));
+      const pa = parseInt(ca.slice(1), 16), pb = parseInt(cb.slice(1), 16);
+      const ch = (s) => Math.round(lerp((pa >> s) & 255, (pb >> s) & 255, u));
+      return `rgb(${ch(16)},${ch(8)},${ch(0)})`;
+    }
+
+    const SKY = [[0, '#4fa8e8'], [0.4, '#f2945c'], [0.65, '#5b3f7a'], [1, '#0e1a33']];
+    const SUN = [[0, '#ffc93c'], [0.5, '#ff7a3d'], [1, '#ff7a3d']];
+    const MTN_FAR = [[0, '#8db3d8'], [0.4, '#c98a8a'], [1, '#22355a']];
+    const MTN_NEAR = [[0, '#4f78a3'], [0.4, '#7a4f6e'], [1, '#14213b']];
+    const DOOR = [[0, '#ffffff'], [0.5, '#ffd9a0'], [1, '#ffb347']];
 
     // Mäter o:ets verkliga kontur pixel för pixel (Poppins "o" är ingen perfekt ellips).
     // Ger o:ets ring som en mittlinje med tjocklek, i enheter av teckenstorleken.
@@ -241,6 +338,51 @@
       return nodes;
     }
 
+    // Bergskedja som en sicksacklinje, x i pixlar, y uppåt från marken (negativt)
+    function mountainPath(rand, vw, skyH, x0, x1, lo, hi) {
+      let d = `M${x0},2`;
+      let x = x0;
+      while (x < x1) {
+        const w = vw * (0.1 + rand() * 0.12);
+        d += `L${x + w * 0.5},${-skyH * lerp(lo, hi, rand())}`;
+        d += `L${x + w},${-skyH * lerp(lo * 0.4, lo * 0.8, rand())}`;
+        x += w;
+      }
+      return d + `L${x},2Z`;
+    }
+
+    // Saker som beror på skärmens storlek men inte på scrollningen
+    function buildScene(vw, vh, ground) {
+      const rand = seeded(7);
+      mtnFar.setAttribute('d', mountainPath(rand, vw, ground, -vw * 0.05, vw * 1.6, 0.35, 0.58));
+      mtnNear.setAttribute('d', mountainPath(rand, vw, ground, -vw * 0.05, vw * 1.6, 0.18, 0.38));
+
+      // Skogen som passerar under färden, och några granar vid lägret
+      const forest = $('forest');
+      forest.replaceChildren();
+      const spots = [];
+      for (let x = 1.06; x < 1.56; x += 0.03 + rand() * 0.035) spots.push({ x, size: 0.5 + rand() * 0.85 });
+      spots.push({ x: 1.6 + 0.04, size: 1.15 }, { x: 1.6 + 0.1, size: 0.7 });
+      forestEls = spots.map((s) => ({ ...s, el: make(forest, 'use', { href: '#spruce', class: 'tree' }) }));
+
+      // Stjärnor
+      const stars = $('stars');
+      stars.replaceChildren();
+      starEls = [];
+      for (let i = 0; i < 60; i++) {
+        starEls.push({
+          el: make(stars, 'circle', {
+            class: 'star',
+            cx: rand() * vw,
+            cy: ground * (0.03 + rand() * 0.6),
+            r: 0.6 + rand() * 1.4,
+          }),
+          phase: rand() * 6.28,
+          speed: 1 + rand() * 2,
+        });
+      }
+    }
+
     function measure() {
       const vw = window.innerWidth;
       const vh = window.innerHeight;
@@ -282,6 +424,10 @@
         if (ok) break;
       }
 
+      // Vägens överkant när den ligger rak = marken för allt i steg 4–8
+      const ground = vh / 2 - (profile.avgThick * fontSize * endScale * fit) / 2;
+      buildScene(vw, vh, ground);
+
       geo = {
         vw,
         vh,
@@ -293,17 +439,32 @@
         fit,
         fontSize,
         treeH,
+        ground,
         scrollRange: Math.max(1, document.documentElement.scrollHeight - vh),
       };
-      update();
+      update(performance.now());
     }
 
-    function update() {
+    // Punkt på hängmattans kurva (kvadratisk Bézier mellan A och B med nedsjunken mitt)
+    function hammockPoint(A, B, sag, t) {
+      const cx = (A.x + B.x) / 2, cy = (A.y + B.y) / 2 + sag * 2;
+      const u = 1 - t;
+      return { x: u * u * A.x + 2 * u * t * cx + t * t * B.x, y: u * u * A.y + 2 * u * t * cy + t * t * B.y };
+    }
+
+    function update(now) {
       if (!geo) return;
+      const time = now / 1000;
+      const { vw, vh, ground } = geo;
       const p = clamp01(window.scrollY / geo.scrollRange);
       const p1 = easeInOut(phase(p, PHASE1));
       const p2 = phase(p, PHASE2);
       const p3 = easeInOut(phase(p, PHASE3));
+      const p4 = phase(p, PHASE4);
+      const p5 = phase(p, PHASE5);
+      const p6 = phase(p, PHASE6);
+      const p7 = phase(p, PHASE7);
+      const p8 = phase(p, PHASE8);
 
       // Steg 1: jämn zoom och glidning mot vänsterkanten
       // Steg 2: krymp halvcirkeln lite om granarna behöver plats (mest på mobil)
@@ -319,52 +480,54 @@
       );
 
       // Steg 3: o:ets ring ersätts av en form som rätas ut till en väg
-      const nodes = band(cx, cy, k, p3, geo.vw, geo.vh);
+      const nodes = band(cx, cy, k, p3, vw, vh);
       if (p3 > 0) {
-        text.setAttribute('display', 'none');
-        road.removeAttribute('display');
+        show(text, false);
+        show(road, true);
         const outer = nodes.map((n) => `${n.x + (n.nx * n.t) / 2},${n.y + (n.ny * n.t) / 2}`);
         const inner = nodes.map((n) => `${n.x - (n.nx * n.t) / 2},${n.y - (n.ny * n.t) / 2}`).reverse();
         road.setAttribute('d', `M${outer.join('L')}L${inner.join('L')}Z`);
       } else {
-        text.removeAttribute('display');
-        road.setAttribute('display', 'none');
+        show(text, true);
+        show(road, false);
       }
+
+      // Färden längs vägen (steg 5–6). Saker längre bort rör sig långsammare.
+      const pan = vw * (PAN5 * easeInOut(p5) + PAN6 * easeInOut(clamp01(p6 / 0.5)));
+      const night = p8;
 
       // Steg 4: himlen stiger upp från vägen, solen glider upp, molnen kommer in från höger
-      const p4 = phase(p, PHASE4);
-      const roadTop = geo.vh / 2 - (profile.avgThick * k) / 2;
+      const roadTop = vh / 2 - (profile.avgThick * k) / 2;
       const skyUp = easeInOut(clamp01(p4 / 0.4));
-      if (p4 > 0) {
-        sky.removeAttribute('display');
-        sky.setAttribute('width', geo.vw);
-        sky.setAttribute('y', roadTop * (1 - skyUp));
-        sky.setAttribute('height', roadTop * skyUp + 1);
-      } else {
-        sky.setAttribute('display', 'none');
-      }
+      show(sky, p4 > 0);
+      sky.setAttribute('width', vw);
+      sky.setAttribute('y', roadTop * (1 - skyUp));
+      sky.setAttribute('height', roadTop * skyUp + 1);
+      sky.setAttribute('fill', colorAt(SKY, night));
 
-      aboveRoad.setAttribute('width', geo.vw);
+      aboveRoad.setAttribute('width', vw);
       aboveRoad.setAttribute('height', roadTop);
-      const sunR = Math.min(geo.vw, geo.vh) * 0.09;
+      const sunR = Math.min(vw, vh) * 0.09;
       const sunUp = easeInOut(clamp01((p4 - 0.2) / 0.5));
+      // Steg 8: solen går ner bakom bergen
+      const sunDown = easeInOut(clamp01(night / 0.55));
       sun.setAttribute('r', sunR);
-      sun.setAttribute('cx', geo.vw * 0.2);
-      sun.setAttribute('cy', lerp(roadTop + sunR, roadTop * 0.32, sunUp));
-      sun.setAttribute('display', p4 > 0.2 ? 'inline' : 'none');
+      sun.setAttribute('cx', vw * 0.2);
+      sun.setAttribute('cy', lerp(lerp(roadTop + sunR, roadTop * 0.32, sunUp), roadTop + sunR, sunDown));
+      sun.setAttribute('fill', colorAt(SUN, night));
+      show(sun, p4 > 0.2 && sunDown < 1);
 
       CLOUDS.forEach((c, i) => {
         const el = cloudEls[i];
         const q = easeInOut(clamp01((p4 - c.start) / 0.35));
-        if (q <= 0) {
-          el.setAttribute('display', 'none');
-          return;
-        }
-        el.removeAttribute('display');
-        const w = Math.min(geo.vw * c.w, roadTop * c.w * 1.6);
-        const x = lerp(geo.vw + 10, geo.vw * c.x - w / 2, q);
+        show(el, q > 0);
+        if (q <= 0) return;
+        const w = Math.min(vw * c.w, roadTop * c.w * 1.6);
+        const x = lerp(vw + 10, vw * c.x - w / 2, q) - pan * 0.15;
         const y = roadTop * c.y + w * 0.55; // molnets överkant hamnar vid c.y
         el.setAttribute('transform', `translate(${x} ${y}) scale(${w})`);
+        // På natten bleknar molnen bort
+        el.setAttribute('opacity', 1 - clamp01((night - 0.3) / 0.4));
       });
 
       // Granarna växer ut från kanten, en i taget, och följer med när vägen rätas ut
@@ -373,30 +536,186 @@
         const el = treeEls[i];
         const start = 0.1 + (tr.order / count) * 0.65;
         const q = clamp01((p2 - start) / 0.25);
-        if (q <= 0) {
-          el.setAttribute('display', 'none');
-          return;
-        }
-        el.removeAttribute('display');
+        show(el, q > 0 && pan < vw * 0.95);
+        if (q <= 0) return;
         const n = nodes[treeNode(tr.angle)];
         const h = geo.treeH * tr.size * easeOutBack(q);
         // Basen en bit in i den svarta kanten så att granen sitter fast
         const off = n.t / 2 - h * 0.11;
-        const bx = n.x + n.nx * off, by = n.y + n.ny * off;
+        const bx = n.x + n.nx * off - pan, by = n.y + n.ny * off;
         const rot = (Math.atan2(n.ny, n.nx) * 180) / Math.PI + 90;
         el.setAttribute('transform', `translate(${bx} ${by}) rotate(${rot}) scale(${h})`);
       });
+
+      // Steg 5: vildmark. Bergen reser sig, skogen passerar, fåglar flyger förbi.
+      const rise = easeInOut(clamp01(p5 / 0.6));
+      const mtnY = ground + ground * 0.7 * (1 - rise);
+      show(mtnFar, p5 > 0);
+      show(mtnNear, p5 > 0);
+      mtnFar.setAttribute('transform', `translate(${-pan * 0.15} ${mtnY + ground * 0.08 * (1 - rise)})`);
+      mtnNear.setAttribute('transform', `translate(${-pan * 0.3} ${mtnY})`);
+      mtnFar.setAttribute('fill', colorAt(MTN_FAR, night));
+      mtnNear.setAttribute('fill', colorAt(MTN_NEAR, night));
+
+      forestEls.forEach((f) => {
+        const x = f.x * vw - pan;
+        const visible = p5 > 0 && x > -vw * 0.2 && x < vw * 1.2;
+        show(f.el, visible);
+        if (!visible) return;
+        const h = geo.treeH * f.size;
+        f.el.setAttribute('transform', `translate(${x} ${ground + h * 0.11}) scale(${h})`);
+      });
+
+      const birdQ = clamp01((p5 - 0.15) / 0.75);
+      birdEls.forEach((el, i) => {
+        show(el, birdQ > 0 && birdQ < 1);
+        if (birdQ <= 0 || birdQ >= 1) return;
+        const size = Math.min(vw, vh) * (0.022 - i * 0.004);
+        const x = lerp(vw + 40 + i * size * 3, -60 + i * size * 3, birdQ);
+        const y = ground * (0.22 + i * 0.07) + Math.sin(time * 1.5 + i) * size * 0.5;
+        const flap = 0.15 + 0.45 * (0.5 + 0.5 * Math.sin(time * 9 + i * 1.7));
+        el.setAttribute(
+          'd',
+          `M${x - size},${y - size * flap} Q${x - size * 0.5},${y - size * flap * 0.2} ${x},${y} ` +
+          `Q${x + size * 0.5},${y - size * flap * 0.2} ${x + size},${y - size * flap}`
+        );
+        el.setAttribute('stroke-width', Math.max(1.5, size * 0.18));
+      });
+
+      // Steg 6: lägerplatsen. Tältet ploppar upp och elden tänds.
+      const campX = (f) => (1.6 + f) * vw - pan;
+      const campOn = pan > vw * 0.6;
+      show($('camp'), campOn);
+      const tentW = Math.min(vw * 0.34, ground * 0.75);
+      const tentQ = clamp01((p6 - 0.5) / 0.25);
+      show($('tentGroup'), tentQ > 0);
+      $('tentGroup').setAttribute(
+        'transform',
+        `translate(${campX(CAMP.tent)} ${ground + 1}) scale(${tentW} ${tentW * easeOutBack(tentQ)})`
+      );
+      $('tentDoor').setAttribute('fill', colorAt(DOOR, night));
+
+      const fireH = Math.min(vw, vh) * 0.06;
+      const fireQ = clamp01((p6 - 0.72) / 0.25);
+      const fx = campX(CAMP.fire), fy = ground - fireH * 0.05;
+      show($('fire'), tentQ > 0.5);
+      $('fire').setAttribute('transform', `translate(${fx} ${fy}) scale(${fireH * 0.6})`);
+      const flick = 1 + 0.12 * Math.sin(time * 9) + 0.06 * Math.sin(time * 23);
+      const sway = Math.sin(time * 6) * 0.08;
+      const flameH = (1 / 0.6) * easeOutBack(fireQ);
+      $('flameOuter').setAttribute('transform', `skewX(${sway * 40}) scale(${flameH * 0.9} ${flameH * flick})`);
+      $('flameInner').setAttribute('transform', `skewX(${-sway * 30}) scale(${flameH * 0.5} ${flameH * flick * 0.6})`);
+      show($('flameOuter'), fireQ > 0);
+      show($('flameInner'), fireQ > 0);
+
+      // Eldens sken syns mest på natten
+      show(glow, campOn && fireQ > 0);
+      glow.setAttribute('cx', fx);
+      glow.setAttribute('cy', fy - fireH * 0.4);
+      glow.setAttribute('r', fireH * (4 + night * 3) * (1 + 0.04 * Math.sin(time * 7)));
+      glow.setAttribute('opacity', 0.25 + night * 0.75);
+
+      // Steg 7: hängmatta mellan två tallar, och någon som lägger sig i den
+      const pineH = Math.min(ground * 0.85, vw * 0.42);
+      const xL = campX(CAMP.pineL), xR = campX(CAMP.pineR);
+      $('pineL').setAttribute('transform', `translate(${xL} ${ground}) scale(${pineH})`);
+      $('pineR').setAttribute('transform', `translate(${xR} ${ground}) scale(${pineH})`);
+
+      const hangQ = clamp01(p7 / 0.4);
+      const A = { x: xL + pineH * 0.035, y: ground - pineH * 0.34 };
+      const B = { x: xR - pineH * 0.035, y: ground - pineH * 0.34 };
+      const span = B.x - A.x;
+      const maxSag = Math.min(span * 0.28, pineH * 0.34 * 0.55);
+      const swing = 1 + 0.05 * Math.sin(time * 1.6);
+      const sag = maxSag * easeOutBack(hangQ) * swing;
+      show($('ropes'), hangQ > 0);
+      show($('hammock'), hangQ > 0);
+      if (hangQ > 0) {
+        const t0 = 0.16, t1 = 0.84;
+        const a0 = hammockPoint(A, B, sag, t0), a1 = hammockPoint(A, B, sag, t1);
+        $('ropes').setAttribute('d', `M${A.x},${A.y}L${a0.x},${a0.y}M${B.x},${B.y}L${a1.x},${a1.y}`);
+        $('ropes').setAttribute('stroke-width', Math.max(1.5, pineH * 0.012));
+        // Tyget: tjockare i mitten
+        const thick = pineH * 0.05;
+        const top = [], bottom = [];
+        for (let i = 0; i <= 24; i++) {
+          const t = lerp(t0, t1, i / 24);
+          const pt = hammockPoint(A, B, sag, t);
+          const w = thick * Math.sin((Math.PI * i) / 24) + 1;
+          top.push(`${pt.x},${pt.y - w * 0.3}`);
+          bottom.unshift(`${pt.x},${pt.y + w * 0.7}`);
+        }
+        $('hammock').setAttribute('d', `M${top.join('L')}L${bottom.join('L')}Z`);
+      }
+
+      const sleepQ = clamp01((p7 - 0.5) / 0.35);
+      show($('sleeperGroup'), sleepQ > 0);
+      let head = null;
+      if (sleepQ > 0) {
+        const drop = (1 - easeOutBack(sleepQ)) * pineH * 0.3;
+        const body = [];
+        for (let i = 0; i <= 20; i++) {
+          const t = lerp(0.3, 0.76, i / 20);
+          const pt = hammockPoint(A, B, sag, t);
+          // Kroppen: höft i mitten, fötterna lite högre vid slutet
+          const bump = pineH * (0.065 * Math.sin(Math.PI * (i / 20)) + (i > 16 ? 0.03 : 0));
+          body.push(`${pt.x},${pt.y - bump - drop}`);
+        }
+        const p0 = hammockPoint(A, B, sag, 0.3), pE = hammockPoint(A, B, sag, 0.76);
+        $('sleeper').setAttribute('d', `M${p0.x},${p0.y - drop}L${body.join('L')}L${pE.x},${pE.y - drop}Z`);
+        const hp = hammockPoint(A, B, sag, 0.25);
+        const headR = pineH * 0.04;
+        head = { x: hp.x, y: hp.y - headR * 1.1 - drop };
+        $('sleeperHead').setAttribute('cx', head.x);
+        $('sleeperHead').setAttribute('cy', head.y);
+        $('sleeperHead').setAttribute('r', headR);
+      }
+
+      // Steg 8: natt. Månen går upp, stjärnorna tänds, och det kommer "z z z" från hängmattan.
+      const moonQ = easeInOut(clamp01((night - 0.5) / 0.4));
+      const moonR = sunR * 0.8;
+      show(moon, moonQ > 0);
+      moon.setAttribute('x', vw * 0.8 - moonR);
+      moon.setAttribute('y', lerp(roadTop + moonR, roadTop * 0.18, moonQ) - moonR);
+      moon.setAttribute('width', moonR * 2);
+      moon.setAttribute('height', moonR * 2);
+
+      const starQ = clamp01((night - 0.6) / 0.35);
+      $('stars').setAttribute('display', starQ > 0 ? 'inline' : 'none');
+      if (starQ > 0) {
+        starEls.forEach((st) => {
+          st.el.setAttribute('opacity', starQ * (0.55 + 0.45 * Math.sin(time * st.speed + st.phase)));
+        });
+      }
+
+      const zQ = clamp01((night - 0.75) / 0.15);
+      zzzEls.forEach((el, i) => {
+        show(el, zQ > 0 && head);
+        if (!(zQ > 0 && head)) return;
+        const cyc = (time * 0.35 + i / 3) % 1;
+        const size = pineH * (0.07 + cyc * 0.09);
+        el.setAttribute('x', head.x + pineH * (0.03 + cyc * 0.12));
+        el.setAttribute('y', head.y - pineH * (0.04 + cyc * 0.28));
+        el.setAttribute('font-size', size);
+        el.setAttribute('opacity', zQ * Math.sin(Math.PI * cyc));
+      });
     }
 
-    let ticking = false;
-    window.addEventListener('scroll', () => {
-      if (ticking) return;
-      ticking = true;
-      requestAnimationFrame(() => { update(); ticking = false; });
-    }, { passive: true });
+    // Uppdatera vid scroll; från vildmarken och framåt rör sig saker även när man står still
+    let lastScroll = -1;
+    function frame(now) {
+      const y = window.scrollY;
+      const animated = geo && y / geo.scrollRange > PHASE5[0];
+      if (y !== lastScroll || animated) {
+        update(now);
+        lastScroll = y;
+      }
+      requestAnimationFrame(frame);
+    }
     window.addEventListener('resize', measure);
 
     measure();
+    requestAnimationFrame(frame);
     if (document.fonts) {
       document.fonts.load('700 40px Poppins').then(measure).catch(() => {});
       document.fonts.ready.then(measure);
