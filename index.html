@@ -14,7 +14,7 @@
     }
     /* Höjden ger scrollsträckan för animationerna */
     body {
-      height: 500vh;
+      height: 700vh;
     }
     svg {
       position: fixed;
@@ -30,7 +30,7 @@
       font-weight: 700;
       fill: #000000;
     }
-    .tree {
+    .tree, #road {
       fill: #000000;
     }
   </style>
@@ -42,6 +42,7 @@
       <path id="spruce" d="M0,-1 L0.16,-0.78 L0.09,-0.78 L0.25,-0.56 L0.15,-0.56 L0.32,-0.32 L0.2,-0.32 L0.38,-0.08 L0.06,-0.08 L0.06,0.12 L-0.06,0.12 L-0.06,-0.08 L-0.38,-0.08 L-0.2,-0.32 L-0.32,-0.32 L-0.15,-0.56 L-0.25,-0.56 L-0.09,-0.78 L-0.16,-0.78 Z"/>
     </defs>
     <g id="word"><text id="text" x="0" y="0">conzpiro</text></g>
+    <path id="road" display="none"/>
     <g id="trees"></g>
   </svg>
 
@@ -49,11 +50,13 @@
     const FONT_STACK = 'Poppins, Arial, sans-serif';
     const SVG_NS = 'http://www.w3.org/2000/svg';
 
-    // Del av scrollsträckan: steg 1 = ordet zoomar till halvcirkel, steg 2 = granar växer fram
-    const PHASE1_END = 0.5;
-    const PHASE2_START = 0.55;
+    // Scrollsträckan (andel 0–1) för de tre stegen:
+    // 1 = ordet zoomar till halvcirkel, 2 = granar växer fram, 3 = o:et rätas ut till en väg
+    const PHASE1 = [0, 0.333];
+    const PHASE2 = [0.367, 0.667];
+    const PHASE3 = [0.7, 1];
 
-    // Granarna: vinkel längs kanten (grader, 0 = rakt åt höger), storlek och i vilken ordning de ploppar upp
+    // Granarna: vinkel längs kanten (grader, 0 = rakt åt höger, jämna tal), storlek och ordning de ploppar upp
     const TREES = [
       { angle: -56, size: 0.55, order: 4 },
       { angle: -42, size: 0.9,  order: 1 },
@@ -66,8 +69,14 @@
       { angle: 56,  size: 0.6,  order: 8 },
     ];
 
+    // O:ets högra halva mäts längs strålar var 2:a grad, från -90° (överst) till 90° (nederst)
+    const STEP = 2;
+    const SAMPLES = 180 / STEP + 1;
+    const treeNode = (angle) => (angle + 90) / STEP;
+
     const word = document.getElementById('word');
     const text = document.getElementById('text');
+    const road = document.getElementById('road');
     const treeLayer = document.getElementById('trees');
     const ctx = document.createElement('canvas').getContext('2d');
 
@@ -80,8 +89,11 @@
     });
 
     let geo = null;
+    let profile = null;
 
     const clamp01 = (t) => Math.min(1, Math.max(0, t));
+    const lerp = (a, b, t) => a + (b - a) * t;
+    const phase = (p, [a, b]) => clamp01((p - a) / (b - a));
 
     function easeInOut(t) {
       return t < 0.5 ? 2 * t * t : 1 - Math.pow(-2 * t + 2, 2) / 2;
@@ -94,7 +106,7 @@
     }
 
     // Mäter o:ets verkliga kontur pixel för pixel (Poppins "o" är ingen perfekt ellips).
-    // Allt anges i enheter av teckenstorleken.
+    // Ger o:ets ring som en mittlinje med tjocklek, i enheter av teckenstorleken.
     function glyphProfile() {
       const REF = 400, OX = 150, OY = 550;
       const c = document.createElement('canvas');
@@ -119,31 +131,72 @@
         }
       }
       const gx = (minX + maxX) / 2, gy = (minY + maxY) / 2;
-      const edgeAt = (deg) => {
-        const t = (deg * Math.PI) / 180, dx = Math.cos(t), dy = Math.sin(t);
-        let r = 0;
-        for (let k = 0; k < 400; k += 0.5) if (ink(gx + dx * k, gy + dy * k)) r = k;
-        return { x: dx * r, y: dy * r };
-      };
-      const edges = TREES.map((tr) => {
-        const p = edgeAt(tr.angle), p1 = edgeAt(tr.angle - 2), p2 = edgeAt(tr.angle + 2);
-        // Normal = tangenten vriden 90° utåt
-        let nx = p2.y - p1.y, ny = -(p2.x - p1.x);
-        if (nx * p.x + ny * p.y < 0) { nx = -nx; ny = -ny; }
-        const len = Math.hypot(nx, ny) || 1;
-        return { x: p.x / REF, y: p.y / REF, nx: nx / len, ny: ny / len };
-      });
+
+      // Mittlinje och tjocklek längs ringen
+      const mid = [], thick = [];
+      for (let j = 0; j < SAMPLES; j++) {
+        const t = ((-90 + j * STEP) * Math.PI) / 180, dx = Math.cos(t), dy = Math.sin(t);
+        let rIn = -1, rOut = 0;
+        for (let r = 0; r < 400; r += 0.5) {
+          if (ink(gx + dx * r, gy + dy * r)) { if (rIn < 0) rIn = r; rOut = r; }
+        }
+        const rm = (rIn + rOut) / 2;
+        mid.push({ x: (dx * rm) / REF, y: (dy * rm) / REF });
+        thick.push((rOut - rIn) / REF);
+      }
+      // Riktning och längd för varje bit av mittlinjen
+      const segAngle = [], segLen = [];
+      let total = 0;
+      for (let j = 0; j < SAMPLES - 1; j++) {
+        const ax = mid[j + 1].x - mid[j].x, ay = mid[j + 1].y - mid[j].y;
+        // Vinkeln hålls sammanhängande (ingen hopp vid ±180°) så att uträtningen blir jämn
+        let a = Math.atan2(ay, ax);
+        if (j > 0) {
+          const prev = segAngle[j - 1];
+          while (a - prev > Math.PI) a -= 2 * Math.PI;
+          while (a - prev < -Math.PI) a += 2 * Math.PI;
+        }
+        segAngle.push(a);
+        const l = Math.hypot(ax, ay);
+        segLen.push(l);
+        total += l;
+      }
       return {
         advance: g.measureText('o').width / REF,
         cx: (gx - OX) / REF,
         cy: (gy - OY) / REF,
         w: (maxX - minX) / REF,
         h: (maxY - minY) / REF,
-        edges,
+        mid, thick, segAngle, segLen, total,
+        avgThick: thick.reduce((a, b) => a + b, 0) / thick.length,
       };
     }
 
-    let profile = null;
+    // Ringens form på skärmen. e = 0: o:ets högra halva, e = 1: rak väg tvärs över skärmen.
+    // Ringen "rätas ut" genom att alla krökar minskas mot noll medan den sträcks ut.
+    function band(cx, cy, k, e, vw, vh) {
+      const P = profile;
+      const margin = 40;
+      const roadLen = vw + margin * 2;
+      const lenScale = lerp(1, roadLen / (P.total * k), e);
+      let x = lerp(cx + P.mid[0].x * k, -margin, e);
+      let y = lerp(cy + P.mid[0].y * k, vh / 2, e);
+      const nodes = [];
+      for (let j = 0; j < SAMPLES; j++) {
+        // Riktning i noden: medel av intilliggande bitar
+        const a0 = P.segAngle[Math.max(0, j - 1)], a1 = P.segAngle[Math.min(SAMPLES - 2, j)];
+        const ang = ((a0 + a1) / 2) * (1 - e);
+        const t = lerp(P.thick[j], P.avgThick, e) * k;
+        // Utåt = vänster om färdriktningen (upp när vägen ligger rakt)
+        nodes.push({ x, y, nx: Math.sin(ang), ny: -Math.cos(ang), t });
+        if (j < SAMPLES - 1) {
+          const sa = P.segAngle[j] * (1 - e), l = P.segLen[j] * k * lenScale;
+          x += Math.cos(sa) * l;
+          y += Math.sin(sa) * l;
+        }
+      }
+      return nodes;
+    }
 
     function measure() {
       const vw = window.innerWidth;
@@ -176,18 +229,18 @@
       const treeH = Math.min(170, Math.max(60, Math.min(vw, vh) * 0.17));
       let fit = 1;
       for (; fit > 0.4; fit -= 0.01) {
-        const k = fontSize * endScale * fit;
-        const ok = TREES.every((tr, i) => {
-          const e = profile.edges[i];
-          const p = { x: e.x * k, y: vh / 2 + e.y * k, nx: e.nx, ny: e.ny };
+        const nodes = band(0, vh / 2, fontSize * endScale * fit, 0, vw, vh);
+        const ok = TREES.every((tr) => {
+          const n = nodes[treeNode(tr.angle)];
           const h = treeH * tr.size * 1.08; // med marginal för översvängen
-          const tipX = p.x + p.nx * h, tipY = p.y + p.ny * h;
+          const tipX = n.x + n.nx * (n.t / 2 + h), tipY = n.y + n.ny * (n.t / 2 + h);
           return tipX <= vw * 0.97 && tipY >= vh * 0.03 && tipY <= vh * 0.97;
         });
         if (ok) break;
       }
 
       geo = {
+        vw,
         vh,
         startX: x0 + oCx,
         startY: y0 + oCy,
@@ -205,41 +258,53 @@
     function update() {
       if (!geo) return;
       const p = clamp01(window.scrollY / geo.scrollRange);
-      const p1 = easeInOut(clamp01(p / PHASE1_END));
-      const p2 = clamp01((p - PHASE2_START) / (1 - PHASE2_START));
+      const p1 = easeInOut(phase(p, PHASE1));
+      const p2 = phase(p, PHASE2);
+      const p3 = easeInOut(phase(p, PHASE3));
 
       // Steg 1: jämn zoom och glidning mot vänsterkanten
       // Steg 2: krymp halvcirkeln lite om granarna behöver plats (mest på mobil)
       const shrink = 1 + (geo.fit - 1) * easeInOut(clamp01(p2 / 0.3));
       const s = Math.pow(geo.endScale, p1) * shrink;
-      const cx = geo.startX + (geo.endX - geo.startX) * p1;
-      const cy = geo.startY + (geo.endY - geo.startY) * p1;
+      const cx = lerp(geo.startX, geo.endX, p1);
+      const cy = lerp(geo.startY, geo.endY, p1);
+      const k = geo.fontSize * s;
 
       word.setAttribute(
         'transform',
         `translate(${cx} ${cy}) scale(${s}) translate(${-geo.startX} ${-geo.startY})`
       );
 
-      // Granarna växer ut från kanten, en i taget
-      const k = geo.fontSize * s;
-      const n = TREES.length;
+      // Steg 3: o:ets ring ersätts av en form som rätas ut till en väg
+      const nodes = band(cx, cy, k, p3, geo.vw, geo.vh);
+      if (p3 > 0) {
+        text.setAttribute('display', 'none');
+        road.removeAttribute('display');
+        const outer = nodes.map((n) => `${n.x + (n.nx * n.t) / 2},${n.y + (n.ny * n.t) / 2}`);
+        const inner = nodes.map((n) => `${n.x - (n.nx * n.t) / 2},${n.y - (n.ny * n.t) / 2}`).reverse();
+        road.setAttribute('d', `M${outer.join('L')}L${inner.join('L')}Z`);
+      } else {
+        text.removeAttribute('display');
+        road.setAttribute('display', 'none');
+      }
+
+      // Granarna växer ut från kanten, en i taget, och följer med när vägen rätas ut
+      const count = TREES.length;
       TREES.forEach((tr, i) => {
         const el = treeEls[i];
-        const start = 0.1 + (tr.order / n) * 0.65;
+        const start = 0.1 + (tr.order / count) * 0.65;
         const q = clamp01((p2 - start) / 0.25);
         if (q <= 0) {
           el.setAttribute('display', 'none');
           return;
         }
         el.removeAttribute('display');
-        const grow = easeOutBack(q);
-        const e = profile.edges[i];
-        const pt = { x: cx + e.x * k, y: cy + e.y * k, nx: e.nx, ny: e.ny };
-        const rot = (Math.atan2(pt.ny, pt.nx) * 180) / Math.PI + 90;
-        const h = geo.treeH * tr.size * grow;
+        const n = nodes[treeNode(tr.angle)];
+        const h = geo.treeH * tr.size * easeOutBack(q);
         // Basen en bit in i den svarta kanten så att granen sitter fast
-        const inset = h * 0.06;
-        const bx = pt.x - pt.nx * inset, by = pt.y - pt.ny * inset;
+        const off = n.t / 2 - h * 0.11;
+        const bx = n.x + n.nx * off, by = n.y + n.ny * off;
+        const rot = (Math.atan2(n.ny, n.nx) * 180) / Math.PI + 90;
         el.setAttribute('transform', `translate(${bx} ${by}) rotate(${rot}) scale(${h})`);
       });
     }
