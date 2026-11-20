@@ -14,7 +14,7 @@
     }
     /* Höjden ger scrollsträckan för animationerna */
     body {
-      height: 700vh;
+      height: 900vh;
     }
     svg {
       position: fixed;
@@ -33,6 +33,15 @@
     .tree, #road {
       fill: #000000;
     }
+    #sky {
+      fill: #4fa8e8;
+    }
+    #sun {
+      fill: #ffc93c;
+    }
+    .cloud {
+      fill: #ffffff;
+    }
   </style>
 </head>
 <body>
@@ -40,7 +49,21 @@
     <defs>
       <!-- Gran med basen i (0,0), pekar uppåt, höjd 1. Stammen går ner i kanten. -->
       <path id="spruce" d="M0,-1 L0.16,-0.78 L0.09,-0.78 L0.25,-0.56 L0.15,-0.56 L0.32,-0.32 L0.2,-0.32 L0.38,-0.08 L0.06,-0.08 L0.06,0.12 L-0.06,0.12 L-0.06,-0.08 L-0.38,-0.08 L-0.2,-0.32 L-0.32,-0.32 L-0.15,-0.56 L-0.25,-0.56 L-0.09,-0.78 L-0.16,-0.78 Z"/>
+      <!-- Moln med platt botten, bredd 1, botten vid y = 0 -->
+      <g id="cloudShape">
+        <rect x="0.05" y="-0.24" width="0.9" height="0.24" rx="0.12"/>
+        <circle cx="0.3" cy="-0.24" r="0.17"/>
+        <circle cx="0.55" cy="-0.32" r="0.23"/>
+        <circle cx="0.76" cy="-0.2" r="0.15"/>
+      </g>
+      <!-- Allt ovanför vägen; solen döljs bakom vägen -->
+      <clipPath id="aboveRoad"><rect id="aboveRoadRect" x="0" y="0" width="0" height="0"/></clipPath>
     </defs>
+    <rect id="sky" x="0" y="0" width="0" height="0"/>
+    <g clip-path="url(#aboveRoad)">
+      <circle id="sun" cx="0" cy="0" r="0"/>
+    </g>
+    <g id="clouds"></g>
     <g id="word"><text id="text" x="0" y="0">conzpiro</text></g>
     <path id="road" display="none"/>
     <g id="trees"></g>
@@ -51,10 +74,19 @@
     const SVG_NS = 'http://www.w3.org/2000/svg';
 
     // Scrollsträckan (andel 0–1) för de tre stegen:
-    // 1 = ordet zoomar till halvcirkel, 2 = granar växer fram, 3 = o:et rätas ut till en väg
-    const PHASE1 = [0, 0.333];
-    const PHASE2 = [0.367, 0.667];
-    const PHASE3 = [0.7, 1];
+    // 1 = ordet zoomar till halvcirkel, 2 = granar växer fram, 3 = o:et rätas ut till en väg,
+    // 4 = blå himmel, sol och moln
+    const PHASE1 = [0, 0.25];
+    const PHASE2 = [0.275, 0.5];
+    const PHASE3 = [0.525, 0.75];
+    const PHASE4 = [0.775, 1];
+
+    // Molnen: höjd (andel av himlen från toppen), bredd (andel av skärmen), slutläge (andel av bredden), start i steg 4
+    const CLOUDS = [
+      { y: 0.22, w: 0.3,  x: 0.47, start: 0.35 },
+      { y: 0.5,  w: 0.22, x: 0.74, start: 0.5 },
+      { y: 0.1,  w: 0.16, x: 0.9,  start: 0.65 },
+    ];
 
     // Granarna: vinkel längs kanten (grader, 0 = rakt åt höger, jämna tal), storlek och ordning de ploppar upp
     const TREES = [
@@ -78,6 +110,17 @@
     const text = document.getElementById('text');
     const road = document.getElementById('road');
     const treeLayer = document.getElementById('trees');
+    const sky = document.getElementById('sky');
+    const sun = document.getElementById('sun');
+    const aboveRoad = document.getElementById('aboveRoadRect');
+    const cloudLayer = document.getElementById('clouds');
+    const cloudEls = CLOUDS.map(() => {
+      const use = document.createElementNS(SVG_NS, 'use');
+      use.setAttribute('href', '#cloudShape');
+      use.setAttribute('class', 'cloud');
+      cloudLayer.appendChild(use);
+      return use;
+    });
     const ctx = document.createElement('canvas').getContext('2d');
 
     const treeEls = TREES.map(() => {
@@ -287,6 +330,42 @@
         text.removeAttribute('display');
         road.setAttribute('display', 'none');
       }
+
+      // Steg 4: himlen stiger upp från vägen, solen glider upp, molnen kommer in från höger
+      const p4 = phase(p, PHASE4);
+      const roadTop = geo.vh / 2 - (profile.avgThick * k) / 2;
+      const skyUp = easeInOut(clamp01(p4 / 0.4));
+      if (p4 > 0) {
+        sky.removeAttribute('display');
+        sky.setAttribute('width', geo.vw);
+        sky.setAttribute('y', roadTop * (1 - skyUp));
+        sky.setAttribute('height', roadTop * skyUp + 1);
+      } else {
+        sky.setAttribute('display', 'none');
+      }
+
+      aboveRoad.setAttribute('width', geo.vw);
+      aboveRoad.setAttribute('height', roadTop);
+      const sunR = Math.min(geo.vw, geo.vh) * 0.09;
+      const sunUp = easeInOut(clamp01((p4 - 0.2) / 0.5));
+      sun.setAttribute('r', sunR);
+      sun.setAttribute('cx', geo.vw * 0.2);
+      sun.setAttribute('cy', lerp(roadTop + sunR, roadTop * 0.32, sunUp));
+      sun.setAttribute('display', p4 > 0.2 ? 'inline' : 'none');
+
+      CLOUDS.forEach((c, i) => {
+        const el = cloudEls[i];
+        const q = easeInOut(clamp01((p4 - c.start) / 0.35));
+        if (q <= 0) {
+          el.setAttribute('display', 'none');
+          return;
+        }
+        el.removeAttribute('display');
+        const w = Math.min(geo.vw * c.w, roadTop * c.w * 1.6);
+        const x = lerp(geo.vw + 10, geo.vw * c.x - w / 2, q);
+        const y = roadTop * c.y + w * 0.55; // molnets överkant hamnar vid c.y
+        el.setAttribute('transform', `translate(${x} ${y}) scale(${w})`);
+      });
 
       // Granarna växer ut från kanten, en i taget, och följer med när vägen rätas ut
       const count = TREES.length;
